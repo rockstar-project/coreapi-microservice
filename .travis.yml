@@ -1,0 +1,17 @@
+sudo: required
+
+language: java
+
+jdk:
+  - oraclejdk8
+
+services:
+  - docker
+
+script:
+  - mvn clean package
+  - docker build -t $DOCKER_NAMESPACE/coreapi-microservice .
+
+after_success:
+  - docker login --username $DOCKER_USER --password $DOCKER_PASSWORD
+  - docker push $DOCKER_NAMESPACE/coreapi-microservice
