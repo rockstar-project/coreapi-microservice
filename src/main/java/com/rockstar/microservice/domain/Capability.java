@@ -2,16 +2,17 @@ package com.rockstar.microservice.domain;
 
 import java.util.Collection;
 
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Document(collection="capabilities")
 public class Capability extends MetaItem {
 
-	@JsonIgnore
 	private String parent;
-	private Collection<String> options;
+	
+	@Transient
+	private Collection<Capability> subcapabilities;
+	private Collection<Option> options;
   
     public Capability() {
     }
@@ -24,11 +25,19 @@ public class Capability extends MetaItem {
 		this.parent = parent;
 	}
 
-	public Collection<String> getOptions() {
+	public Collection<Capability> getSubcapabilities() {
+		return subcapabilities;
+	}
+
+	public void setSubcapabilities(Collection<Capability> subcapabilities) {
+		this.subcapabilities = subcapabilities;
+	}
+
+	public Collection<Option> getOptions() {
 		return options;
 	}
 
-	public void setOptions(Collection<String> options) {
+	public void setOptions(Collection<Option> options) {
 		this.options = options;
 	}
     

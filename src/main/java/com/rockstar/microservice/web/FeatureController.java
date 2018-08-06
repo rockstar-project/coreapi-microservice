@@ -1,102 +1,56 @@
 package com.rockstar.microservice.web;
 
-import static org.springframework.hateoas.mvc.ControllerLinkBuilder.linkTo;
-import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
-
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
+import java.util.Collection;
 
 import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.hateoas.Link;
-import org.springframework.hateoas.MediaTypes;
-import org.springframework.hateoas.Resource;
-import org.springframework.hateoas.Resources;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import com.rockstar.microservice.domain.Feature;
-import com.rockstar.microservice.domain.FeatureRepository;
+import com.rockstar.microservice.service.FeatureService;
 
 @RestController
-@RequestMapping("/features")
 public class FeatureController {
 	
     @Autowired
-    private FeatureRepository featureRepository;
+    private FeatureService featureService;
     
-    @GetMapping(produces = MediaTypes.HAL_JSON_VALUE)
-    public ResponseEntity<Resources<Resource<Feature>>> findAll() {
-    		List<Resource<Feature>> features = StreamSupport.stream(featureRepository.findAll().spliterator(), false)
-    			.map(feature -> new Resource<>(feature,
-    				linkTo(methodOn(FeatureController.class).findOne(feature.getId())).withSelfRel()))
-    			.collect(Collectors.toList());
-
-    		return ResponseEntity.ok(
-    			new Resources<>(features,linkTo(methodOn(FeatureController.class).findAll()).withSelfRel()));
+    @PostMapping("/features")
+    public ResponseEntity<Feature> create(@Valid @RequestBody Feature feature, UriComponentsBuilder uriBuilder) throws Exception {
+    		Feature newFeature = featureService.createFeature(feature);
+        return ResponseEntity.created(uriBuilder.path("/features/{id}").buildAndExpand(newFeature.getId()).toUri()).body(newFeature);
     }
-    
-    @PostMapping
-	public ResponseEntity<?> newFeature(@Valid @RequestBody Feature feature) {
-    		Feature savedFeature = null;
-    		
-		try {
-			savedFeature = this.featureRepository.save(feature);
-			Link newlyCreatedLink = linkTo(methodOn(FeatureController.class).findOne(savedFeature.getId())).withSelfRel();
 
-			Resource<Feature> featureResource = new Resource<>(savedFeature,
-				linkTo(methodOn(FeatureController.class).findOne(savedFeature.getId())).withSelfRel());
-
-			return ResponseEntity
-				.created(new URI(newlyCreatedLink.getHref()))
-				.body(featureResource);
-		} catch (URISyntaxException e) {
-			return ResponseEntity.badRequest().body("Unable to create " + feature);
-		}
+    @GetMapping("/features")
+    public ResponseEntity<Collection<Feature>> findAll(){
+        return ResponseEntity.ok(featureService.getFeatures());
     }
-    
-    @GetMapping(value = "/{slug}", produces = MediaTypes.HAL_JSON_VALUE)
-	public ResponseEntity<Resource<Feature>> findOne(@PathVariable String slug) {
 
-    		return this.featureRepository.findById(slug)
-    			.map(feature -> new Resource<>(feature,
-    				linkTo(methodOn(FeatureController.class).findOne(feature.getId())).withSelfRel()))
-    			.map(ResponseEntity::ok)
-    			.orElse(ResponseEntity.notFound().build());
+    @GetMapping("/features/{id}")
+    public ResponseEntity<Feature> show(@PathVariable String id){
+        return ResponseEntity.ok(featureService.getFeature(id));
     }
-    
-    @PutMapping("/{slug}")
-	public ResponseEntity<?> updateFeature(@RequestBody Feature feature, @PathVariable String slug) {
-		Feature featureToUpdate = feature;
-		featureToUpdate.setId(slug);
-		this.featureRepository.save(featureToUpdate);
 
-		Link newlyCreatedLink = linkTo(methodOn(FeatureController.class).findOne(slug)).withSelfRel();
-
-		try {
-			return ResponseEntity.noContent()
-				.location(new URI(newlyCreatedLink.getHref()))
-				.build();
-		} catch (URISyntaxException e) {
-			return ResponseEntity.badRequest().body("Unable to update " + featureToUpdate);
-		}
+    @PatchMapping("/features/{id}")
+    public ResponseEntity<Void> update(@PathVariable String id, @RequestBody Feature feature) {
+    		feature.setId(id);
+        featureService.updateFeature(feature);
+        return ResponseEntity.noContent().build();
     }
-    
-    @DeleteMapping("/{slug}")
-	public ResponseEntity<?> deleteFeature(@PathVariable String slug) {
-		this.featureRepository.deleteById(slug);
-		return ResponseEntity.noContent().build();
+
+    @DeleteMapping("/features/{id}")
+    public ResponseEntity<Void> delete(@PathVariable String id){
+    		featureService.deleteFeature(id);
+        return ResponseEntity.noContent().build();
     }
     
 }

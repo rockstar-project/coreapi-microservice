@@ -1,100 +1,56 @@
 package com.rockstar.microservice.web;
 
-import static org.springframework.hateoas.mvc.ControllerLinkBuilder.linkTo;
-import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
-
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
+import java.util.Collection;
 
 import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.hateoas.Link;
-import org.springframework.hateoas.MediaTypes;
-import org.springframework.hateoas.Resource;
-import org.springframework.hateoas.Resources;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import com.rockstar.microservice.domain.Architecture;
-import com.rockstar.microservice.domain.ArchitectureRepository;
+import com.rockstar.microservice.service.ArchitectureService;
 
 @RestController
-@RequestMapping("/architectures")
 public class ArchitectureController {
 	
     @Autowired
-    private ArchitectureRepository architectureRepository;
+    private ArchitectureService architectureService;
     
-    @GetMapping(produces = MediaTypes.HAL_JSON_VALUE)
-    public ResponseEntity<Resources<Resource<Architecture>>> findAll() {
-    		List<Resource<Architecture>> architectures = StreamSupport.stream(architectureRepository.findAll().spliterator(), false)
-    			.map(architecture -> new Resource<>(architecture))
-    			.collect(Collectors.toList());
-
-    		return ResponseEntity.ok(
-    			new Resources<>(architectures,linkTo(methodOn(ArchitectureController.class).findAll()).withSelfRel()));
+    @PostMapping("/architectures")
+    public ResponseEntity<Architecture> create(@Valid @RequestBody Architecture architecture, UriComponentsBuilder uriBuilder) throws Exception {
+    		Architecture newArchitecture = architectureService.createArchitecture(architecture);
+        return ResponseEntity.created(uriBuilder.path("/architectures/{id}").buildAndExpand(newArchitecture.getId()).toUri()).body(newArchitecture);
     }
-    
-    @PostMapping
-	public ResponseEntity<?> newArchitecture(@Valid @RequestBody Architecture architecture) {
-    		Architecture savedArchitecture = null;
-    		
-		try {
-			savedArchitecture = this.architectureRepository.save(architecture);
-			Link newlyCreatedLink = linkTo(methodOn(ArchitectureController.class).findOne(savedArchitecture.getId())).withSelfRel();
 
-			Resource<Architecture> architectureResource = new Resource<>(savedArchitecture,
-				linkTo(methodOn(ArchitectureController.class).findOne(savedArchitecture.getId())).withSelfRel());
-
-			return ResponseEntity
-				.created(new URI(newlyCreatedLink.getHref()))
-				.body(architectureResource);
-		} catch (URISyntaxException e) {
-			return ResponseEntity.badRequest().body("Unable to create " + architecture);
-		}
+    @GetMapping("/architectures")
+    public ResponseEntity<Collection<Architecture>> findAll(){
+        return ResponseEntity.ok(architectureService.getArchitectures());
     }
-    
-    @GetMapping(value = "/{slug}", produces = MediaTypes.HAL_JSON_VALUE)
-	public ResponseEntity<Resource<Architecture>> findOne(@PathVariable String slug) {
 
-    		return this.architectureRepository.findById(slug)
-    			.map(architecture -> new Resource<>(architecture))
-    			.map(ResponseEntity::ok)
-    			.orElse(ResponseEntity.notFound().build());
+    @GetMapping("/architectures/{id}")
+    public ResponseEntity<Architecture> show(@PathVariable String id){
+        return ResponseEntity.ok(architectureService.getArchitecture(id));
     }
-    
-    @PutMapping("/{slug}")
-	public ResponseEntity<?> updateArchitecture(@RequestBody Architecture architecture, @PathVariable String slug) {
-		Architecture architectureToUpdate = architecture;
-		architectureToUpdate.setId(slug);
-		this.architectureRepository.save(architectureToUpdate);
 
-		Link newlyCreatedLink = linkTo(methodOn(ArchitectureController.class).findOne(slug)).withSelfRel();
-
-		try {
-			return ResponseEntity.noContent()
-				.location(new URI(newlyCreatedLink.getHref()))
-				.build();
-		} catch (URISyntaxException e) {
-			return ResponseEntity.badRequest().body("Unable to update " + architectureToUpdate);
-		}
+    @PatchMapping("/architectures/{id}")
+    public ResponseEntity<Void> update(@PathVariable String id, @RequestBody Architecture architecture) {
+    		architecture.setId(id);
+        architectureService.updateArchitecture(architecture);
+        return ResponseEntity.noContent().build();
     }
-    
-    @DeleteMapping("/{slug}")
-	public ResponseEntity<?> deleteArchitecture(@PathVariable String slug) {
-		this.architectureRepository.deleteById(slug);
-		return ResponseEntity.noContent().build();
+
+    @DeleteMapping("/architectures/{id}")
+    public ResponseEntity<Void> delete(@PathVariable String id){
+    		architectureService.deleteArchitecture(id);
+        return ResponseEntity.noContent().build();
     }
     
 }

@@ -9,7 +9,6 @@ import javax.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindingResult;
@@ -22,6 +21,9 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+
+import com.rockstar.microservice.service.NotFoundException;
+import com.rockstar.microservice.service.NotUniqueException;
 
 @ControllerAdvice
 public class ErrorHandler {
@@ -46,6 +48,15 @@ public class ErrorHandler {
 		ErrorResource error = new ErrorResource();
 		error.setError("not_found");
 		error.setDescription(notfoundex.getMessage());
+		return error;
+	}
+	
+	@ExceptionHandler({NotUniqueException.class})
+	@ResponseStatus(HttpStatus.CONFLICT)
+	public @ResponseBody ErrorResource handleNotFound(NotUniqueException notuniqueex) {
+		ErrorResource error = new ErrorResource();
+		error.setError("not_unique");
+		error.setDescription(notuniqueex.getMessage());
 		return error;
 	}
 	

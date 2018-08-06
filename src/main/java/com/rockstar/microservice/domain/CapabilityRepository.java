@@ -8,4 +8,5 @@ public interface CapabilityRepository extends MongoRepository<Capability, String
 	
 	public Collection<Capability> findByParent(String parent);
 	public Collection<Capability> findByParentNull();
+	public Capability findByParentAndId(String parent, String id);
 }
