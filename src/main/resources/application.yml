@@ -1,11 +1,5 @@
 spring:
   profiles: docker
-eureka:
-  instance:
-    prefer-ip-address: true
-  client:
-    serviceUrl: 
-      defaultZone: http://discovery:8761/eureka/
 logging:
   level:
     org.springframework.security: DEBUG
